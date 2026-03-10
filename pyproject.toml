@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ghostmode"
+version = "0.1.0"
+description = "See what your AI agent would do, without letting it do anything. Zero-config dry-run proxy for MCP servers."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+authors = [
+    {name = "David Russell"},
+]
+keywords = ["mcp", "ai-agents", "ghost-mode", "dry-run", "proxy", "safety"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+ghostmode = "ghostmode.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/unwind-mcp/ghostmode"
+Repository = "https://github.com/unwind-mcp/ghostmode"
+"Full Security Suite" = "https://github.com/unwind-mcp/unwind"
+
+[tool.setuptools.packages.find]
+include = ["ghostmode*"]
