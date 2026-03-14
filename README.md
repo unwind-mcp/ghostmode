@@ -2,6 +2,8 @@
 
 **See what your AI agent would do, without letting it do anything.**
 
+> Standalone package extracted from the [UNWIND monorepo](https://github.com/unwind-mcp/unwind) (250+ commits, 1,859 tests). Full development history lives there.
+
 Ghost Mode is a safe first step before giving an AI agent real authority.
 
 It's a zero-config dry-run layer for AI agents. It intercepts every write and lets reads through. Think of it as a flight simulator for AI agents — nothing gets modified, but you see everything the agent tried to do.
