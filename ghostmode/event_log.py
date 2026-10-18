@@ -17,6 +17,8 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Optional
 
+from . import __version__
+
 
 @dataclass
 class GhostEvent:
@@ -128,7 +130,7 @@ class GhostEventLog:
     def export_json(self, path: Path) -> int:
         """Export the event log to a JSON file."""
         data = {
-            "ghostmode_version": "0.1.0",
+            "ghostmode_version": __version__,
             "session_summary": self.summary(),
             "events": [asdict(e) for e in self.events],
         }
