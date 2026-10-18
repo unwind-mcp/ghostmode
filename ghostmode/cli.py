@@ -11,6 +11,7 @@ Usage:
 import argparse
 import asyncio
 import logging
+import shutil
 import sys
 
 
@@ -104,6 +105,19 @@ def main() -> None:
     ))
     logging.root.addHandler(handler)
     logging.root.setLevel(level)
+
+    from .proxy import upstream_env
+
+    if shutil.which(upstream_cmd[0], path=upstream_env()["PATH"]) is None:
+        print(
+            f"\n  \U0001f47b Ghost Mode could not find the command '{upstream_cmd[0]}'.\n"
+            "\n"
+            "  MCP clients such as Claude Desktop start servers with a minimal PATH,\n"
+            "  so give the full path instead. To find it, run in a terminal:\n"
+            f"    which {upstream_cmd[0]}\n",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     # Banner
     print(

@@ -21,6 +21,7 @@ import json
 import logging
 import os
 import re
+import shutil
 import signal
 import sys
 import time
@@ -124,6 +125,35 @@ LOG_TARGET_KEYS = PATH_KEYS + ("target", "url", "uri", "source", "old_path")
 CONTENT_KEYS = ("content", "body", "text", "data")
 
 _LISTING_LINE = re.compile(r"^\[(FILE|DIR)\] (.+?)(?:\s{2,}(\S.*))?$")
+
+
+# ── Upstream launch ───────────────────────────────────────────────
+
+# MCP clients such as Claude Desktop start servers with a minimal PATH, so
+# commands installed by Homebrew, npm or pipx (npx, node, uvx...) are not
+# found. These usual install locations are appended to the upstream's PATH.
+EXTRA_PATH_DIRS = ("/opt/homebrew/bin", "/usr/local/bin", "~/.local/bin",
+                   "~/.volta/bin", "~/.bun/bin", "~/.cargo/bin")
+
+
+class UpstreamNotFound(Exception):
+    """The upstream MCP server command could not be found."""
+
+    def __init__(self, command: str):
+        super().__init__(command)
+        self.command = command
+
+
+def upstream_env() -> dict:
+    """Environment for the upstream server: ours, with a fuller PATH."""
+    env = dict(os.environ)
+    path = env.get("PATH", os.defpath).split(os.pathsep)
+    for d in EXTRA_PATH_DIRS:
+        d = os.path.expanduser(d)
+        if d not in path and os.path.isdir(d):
+            path.append(d)
+    env["PATH"] = os.pathsep.join(path)
+    return env
 
 
 # ── JSON-RPC Helpers ──────────────────────────────────────────────
@@ -276,12 +306,19 @@ class GhostProxy:
 
         # Upstream subprocess, in its own process group so shutdown can stop
         # launchers like npx together with the server they spawn
+        env = upstream_env()
+        command = list(self.upstream_command)
+        resolved = shutil.which(command[0], path=env["PATH"])
+        if resolved is None:
+            raise UpstreamNotFound(command[0])
+        command[0] = resolved
         self._process = await asyncio.create_subprocess_exec(
-            *self.upstream_command,
+            *command,
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             start_new_session=(os.name == "posix"),
+            env=env,
         )
         self._upstream_reader = StdioReader(self._process.stdout)
         self._upstream_writer = StdioWriter(self._process.stdin)
