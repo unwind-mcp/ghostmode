@@ -10,6 +10,7 @@ import time
 import unittest
 from pathlib import Path
 
+from ghostmode import __version__
 from ghostmode.shadow_vfs import ShadowVFS
 from ghostmode.event_log import GhostEventLog, GhostEvent
 from ghostmode.proxy import is_write_tool, classify_tool, DEFAULT_WRITE_TOOLS
@@ -150,7 +151,7 @@ class TestGhostEventLog(unittest.TestCase):
         self.assertEqual(count, 2)
 
         data = json.loads(path.read_text())
-        self.assertEqual(data["ghostmode_version"], "0.1.0")
+        self.assertEqual(data["ghostmode_version"], __version__)
         self.assertEqual(len(data["events"]), 2)
         self.assertEqual(data["events"][0]["tool"], "fs_write")
         path.unlink()

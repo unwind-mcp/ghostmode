@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ghostmode"
-version = "0.1.0"
+version = "0.2.0"
 description = "See what your AI agent would do, without letting it do anything. Zero-config dry-run proxy for MCP servers."
 readme = "README.md"
 license = "MIT"
