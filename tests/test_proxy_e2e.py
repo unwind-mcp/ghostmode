@@ -242,6 +242,32 @@ class TestUnknownTools(ProxyTestCase):
         self.assertIn("size: 15", out)
 
 
+class TestUpstreamLaunch(unittest.TestCase):
+    def test_missing_command_gives_plain_error(self):
+        env = dict(os.environ, PYTHONPATH=str(HERE.parent))
+        proc = subprocess.run(
+            [sys.executable, "-m", "ghostmode.cli", "--", "definitely-not-a-command-xyz"],
+            stdin=subprocess.DEVNULL, capture_output=True, text=True, env=env, timeout=30,
+        )
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("could not find the command 'definitely-not-a-command-xyz'", proc.stderr)
+        self.assertNotIn("Traceback", proc.stderr)
+
+    def test_minimal_path_is_extended(self):
+        from ghostmode.proxy import EXTRA_PATH_DIRS, upstream_env
+        old = os.environ.get("PATH")
+        os.environ["PATH"] = "/usr/bin:/bin"
+        try:
+            path = upstream_env()["PATH"].split(os.pathsep)
+        finally:
+            os.environ["PATH"] = old
+        self.assertEqual(path[:2], ["/usr/bin", "/bin"])
+        for d in EXTRA_PATH_DIRS:
+            d = os.path.expanduser(d)
+            if os.path.isdir(d):
+                self.assertIn(d, path)
+
+
 class TestShadowVFSHelpers(unittest.TestCase):
     def test_paths_are_normalised(self):
         vfs = ShadowVFS()

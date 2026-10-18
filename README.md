@@ -14,26 +14,48 @@ Requires Python 3.9+.
 
 ### MCP Client Users (Claude Desktop, Cursor, etc.)
 
+**1. Install it.**
+
 ```bash
-pip install ghostmode
-ghostmode -- npx @modelcontextprotocol/server-filesystem ~/Documents
+pipx install ghostmode
 ```
 
-Point your agent at Ghost Mode instead of the real server. When the session ends, a summary is written to `ghostmode-summary.txt` in your working directory (or your home directory if that isn't writable) and printed to stderr.
+No pipx? Use a small virtual environment instead. On macOS with Homebrew Python, a plain `pip install` is refused with "externally-managed-environment".
+
+```bash
+python3 -m venv ~/.ghostmode && ~/.ghostmode/bin/pip install ghostmode
+```
+
+**2. Find its full path** with `which ghostmode`. If you used the virtual environment, it's `~/.ghostmode/bin/ghostmode`.
+
+**3. Put Ghost Mode in front of the server in your client's config.** In Claude Desktop, go to Settings → Developer → Edit Config. In Cursor, edit `~/.cursor/mcp.json`. Use full paths, because these apps don't see your shell's PATH:
+
+```json
+{
+  "mcpServers": {
+    "documents-ghost": {
+      "command": "/full/path/to/ghostmode",
+      "args": ["--", "npx", "-y", "@modelcontextprotocol/server-filesystem", "/Users/you/Documents"]
+    }
+  }
+}
+```
+
+Restart the app and give your agent a task. When the session ends, a summary is written to `ghostmode-summary.txt` in your working directory (or your home directory if that isn't writable) and printed to stderr.
+
+To try it in a terminal first, run `ghostmode -v -- npx -y @modelcontextprotocol/server-filesystem ~/Documents`. It waits for an MCP client on stdin; press Ctrl+C to stop and see the summary.
 
 ### OpenClaw Users
 
+There is no separate Ghost Mode plugin for OpenClaw. Ghost Mode for OpenClaw comes with UNWIND's experimental OpenClaw adapter:
+
 ```bash
-# 1. Install Ghost Mode
-pip install ghostmode
-
-# 2. Install the OpenClaw plugin
-openclaw plugins install @unwind/ghostmode-openclaw
-
-# 3. Restart the gateway
+pip install unwind-mcp
+git clone https://github.com/unwind-mcp/unwind.git
+openclaw plugins install ./unwind/openclaw-adapter
+# Restart the OpenClaw gateway, then:
+unwind ghost on
 ```
-
-Ghost Mode hooks into OpenClaw's tool-call system. Every write is intercepted. Every read passes through.
 
 ## What it does
 
@@ -45,33 +67,42 @@ A shadow virtual filesystem keeps the agent consistent: if it "writes" a file an
 
 ```
 =======================================================
-  GHOST MODE SESSION SUMMARY
+  👻 GHOST MODE SESSION SUMMARY
 =======================================================
-  Duration:     47.3s
-  Total events: 12
+  Duration:     112.7s
+  Total events: 10
   Intercepted:  4 writes blocked
-  Passed:       7 reads forwarded
-  Shadow reads: 1 served from VFS
+  Passed:       2 reads forwarded
+  Shadow reads: 4 served from VFS
 
   Files the agent tried to write:
-    /home/user/Documents/report.md
-    /home/user/Documents/summary.txt
+    📝 /home/user/Documents/notes.txt
+    📝 /home/user/Documents/archive/draft.txt
+    📝 /home/user/Documents/summary.md
 
-  Files the agent tried to delete:
-    /home/user/Documents/old_draft.md
+  Directories the agent tried to create:
+    📁 /home/user/Documents/archive
 
-  4 write(s) were blocked. Nothing was modified.
+  Files the agent tried to delete or move away:
+    🗑️  /home/user/Documents/draft.txt
+
+  🚫 4 write(s) were blocked. Nothing was modified.
 
   Full timeline:
-  14:23:01  [PASSED]  fs_read  /home/user/Documents/notes.txt
-  14:23:02  [PASSED]  fs_list  /home/user/Documents
-  14:23:03  [BLOCKED] fs_write /home/user/Documents/report.md
-  14:23:04  [SHADOW]  fs_read  /home/user/Documents/report.md
-  14:23:05  [BLOCKED] fs_delete /home/user/Documents/old_draft.md
-  14:23:06  [BLOCKED] send_email
-  14:23:07  [PASSED]  fs_read  /home/user/Documents/config.json
+  ✅ 18:53:06  [PASSED]  list_directory → /home/user/Documents
+  ✅ 18:53:07  [PASSED]  read_text_file → /home/user/Documents/notes.txt
+  🚫 18:54:03  [BLOCKED]  edit_file → /home/user/Documents/notes.txt
+  🚫 18:54:03  [BLOCKED]  create_directory → /home/user/Documents/archive
+  🚫 18:54:08  [BLOCKED]  move_file → /home/user/Documents/draft.txt
+  👻 18:54:13  [SHADOW]  directory_tree → /home/user/Documents
+  🚫 18:54:26  [BLOCKED]  write_file → /home/user/Documents/summary.md
+  👻 18:54:27  [SHADOW]  read_text_file → /home/user/Documents/notes.txt
+  👻 18:54:34  [SHADOW]  read_text_file → /home/user/Documents/summary.md
+  👻 18:54:34  [SHADOW]  directory_tree → /home/user/Documents
 =======================================================
 ```
+
+This is a real session: an agent fixed a typo, archived a draft and wrote a summary. It saw every change it made, but nothing on disk changed.
 
 ## Use cases
 
